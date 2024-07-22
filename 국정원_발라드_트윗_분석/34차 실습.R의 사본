@@ -1,0 +1,89 @@
+#34차시 실습자료
+
+library(KoNLP)
+library(dplyr)
+library(stringr)
+library(ggplot2) 
+
+useNIADic() #NIA 사전 
+
+twitter <- read.csv("twitter.csv",
+                    header = T,
+                    stringsAsFactors = F,
+                    fileEncoding = "UTF-8")
+str(twitter)
+
+twitter$내용 <- str_replace_all(twitter$내용, '[[:punct:]]', " ")
+head(twitter$내용)
+
+nouns <- extractNoun(twitter$내용) #트윗에서 명사 추출
+wordcount <- table(unlist(nouns))
+
+#데이터 프레임으로 변환
+df_word <- as.data.frame(wordcount, stringsAsFactors = F)
+df_word <- rename(df_word,
+                  word = Var1,
+                  freq = Freq)
+
+df_word <- filter(df_word, nchar(word) >= 2)
+#전처리 결과 확인
+top20 <- df_word %>% arrange(desc(freq)) %>%head(20)
+top20
+
+order <- arrange(top20, desc(freq))$word
+
+ggplot(top20, aes(x = word, y = freq)) +
+  geom_col() +
+  scale_x_discrete(limit = order) +
+  ggtitle("국정원 트윗 고빈도 노출단어 TOP20") +
+  geom_text(aes(label = freq), vjust= -0.8)
+
+
+
+
+
+  
+#로딩
+txt <- readLines('balad.txt', encoding = 'UTF-8')  #한국어 정상적으로 로딩하기 위해 readLines사용
+
+#데이터 전처리
+data <- str_replace_all(txt, '[[:punct:]]',  " ")
+data <- data[1:10000]
+
+nouns <- extractNoun(data)  #추가 package 설치할 수 있음
+wordcount <- table(unlist(nouns))
+
+df_word <- as.data.frame(wordcount, stringsAsfactors=F)
+str(df_word)
+df_word <- rename(df_word, word = Var1, freq = Freq)
+
+class(df_word$word)
+df_word$word <- as.character(df_word$word)
+class(df_word$word)
+
+df_word <- filter(df_word, nchar(word) >= 2) #단어수가 2글자 이상인거만 남김
+
+
+library(wordcloud)
+library(RColorBrewer)
+
+pal <- brewer.pal(8, "Dark2") # Dark2 색상 목록에서 8개 색상 추출
+pal
+set.seed(1)
+
+wordcloud(words = df_word$word,   #단어
+          freq = round(sqrt(df_word$freq)),	  #빈도 차이 줄임
+          min.freq = 5, 		  #최소 단어 빈도
+          max.words = 200, 		  #표현 단어 수
+          random.order = F,		  #고빈도 단어 중앙 배치
+          rot.per = .1,			  #회전 단어 비율
+          scale = c(4, 0.5),		  #단어 크기 범위
+          colors = pal)			  #색상 목록
+
+top20 <- df_word %>% arrange(desc(freq)) %>%head(20)
+order <- arrange(top20, desc(freq))$word
+
+ggplot(top20, aes(x = word, y = freq)) +
+  geom_col() +
+  scale_x_discrete(limit = order) +
+  geom_text(aes(label = freq), vjust= -0.8)
